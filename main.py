@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from Get_Map import *
+from Geocode import *
 
 MODES = {'Схема': 'map',
          'Спутник': 'sat',
@@ -19,11 +20,14 @@ class Ui_Form(QMainWindow):
         self.coords = '37.620070,55.753630'
         self.spn = '0.01,0.01'
         self.mode = 'map'
+        self.target = None
         self.fill_chg_mode()
         get_map(self.mode, self.coords, spn=self.spn)
         self.set_image('map.png')
 
         self.chg_mode_btn.clicked.connect(self.chg_type)
+
+        self.btn_search.clicked.connect(self.search)
 
     def fill_chg_mode(self):
         for key in MODES.keys():
@@ -31,7 +35,7 @@ class Ui_Form(QMainWindow):
         self.chg_mode.setCurrentIndex(0)
 
     def update(self):
-        get_map(self.mode, self.coords, spn=self.spn)
+        get_map(self.mode, self.coords, spn=self.spn, pt=self.target)
         self.set_image('map.png')
 
     def set_image(self, img_name):
@@ -74,6 +78,19 @@ class Ui_Form(QMainWindow):
         self.mode = MODES[self.chg_mode.currentText()]
         print(self.mode)
         self.update()
+
+    def search(self):
+        response = geocode(self.fnd_line.text())
+        if response:
+            json_response = response.json()
+            toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+            coords = toponym["Point"]["pos"].split()
+            self.coords = f'{coords[0]},{coords[1]}'
+            self.target = self.coords
+            self.update()
+        else:
+            print("Ошибка выполнения запроса:")
+            print("Http статус:", response.status_code, "(", response.reason, ")")
 
 
 def except_hook(cls, exception, traceback):
