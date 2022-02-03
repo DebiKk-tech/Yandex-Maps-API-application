@@ -23,7 +23,7 @@ class Ui_Form(QMainWindow):
         self.target = None
         self.fill_chg_mode()
         self.adress = None
-        self.postal_code = None
+        self.postal_code = ''
         get_map(self.mode, self.coords, spn=self.spn)
         self.set_image('map.png')
 
@@ -43,6 +43,7 @@ class Ui_Form(QMainWindow):
         get_map(self.mode, self.coords, spn=self.spn, pt=self.target)
         if self.adress:
             if self.chck_index.isChecked():
+                print(self.adress, self.postal_code)
                 self.edit_output.setText(self.adress + self.postal_code)
             else:
                 self.edit_output.setText(self.adress)
@@ -102,7 +103,8 @@ class Ui_Form(QMainWindow):
                 postal_code = toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]['postal_code']
                 self.postal_code = ', ' + postal_code
             except:
-                pass
+                self.postal_code = ''
+
             self.adress = adress
             self.coords = f'{coords[0]},{coords[1]}'
             self.target = self.coords
@@ -116,7 +118,7 @@ class Ui_Form(QMainWindow):
         self.edit_output.setText('')
         self.adress = None
         self.edit_output.setDisabled(True)
-        self.postal_code = None
+        self.postal_code = ''
         self.update()
 
 
