@@ -5,26 +5,33 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from Get_Map import *
-from Geocode import *
 
-MODES = ['map', 'sat', 'skl', 'trf']
+MODES = {'Схема': 'map',
+         'Спутник': 'sat',
+         'Гибрид': 'sat,skl'
+         }
 
 
 class Ui_Form(QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi('MapProject.ui', self)
-        self.targets = None
         self.coords = '37.620070,55.753630'
         self.spn = '0.01,0.01'
-        self.mode = MODES[0]
+        self.mode = 'map'
+        self.fill_chg_mode()
         get_map(self.mode, self.coords, spn=self.spn)
         self.set_image('map.png')
-        self.chg_type_btn.clicked.connect(self.chg_type)
-        self.found_btn.clicked.connect(self.found)
+
+        self.chg_mode_btn.clicked.connect(self.chg_type)
+
+    def fill_chg_mode(self):
+        for key in MODES.keys():
+            self.chg_mode.addItem(key)
+        self.chg_mode.setCurrentIndex(0)
 
     def update(self):
-        get_map(self.mode, self.coords, spn=self.spn, pt=self.targets[0])
+        get_map(self.mode, self.coords, spn=self.spn)
         self.set_image('map.png')
 
     def set_image(self, img_name):
@@ -64,22 +71,9 @@ class Ui_Form(QMainWindow):
         self.update()
 
     def chg_type(self):
-        self.mode = MODES[len(MODES) % (MODES.index(self.mode) + 1)]
-        self.type_lbl.setText(f'Тип: {self.mode}')
+        self.mode = MODES[self.chg_mode.currentText()]
+        print(self.mode)
         self.update()
-
-    def found(self):
-        response = geocode(self.fnd_line.getText())
-        if response:
-            json_response = response.json()
-            toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
-            coords = toponym["Point"]["pos"].split()
-            self.coords = f'{coords[0]},{coords[1]}'
-            self.targets = self.coords
-            self.update()
-        else:
-            print("Ошибка выполнения запроса:")
-            print("Http статус:", response.status_code, "(", response.reason, ")")
 
 
 def except_hook(cls, exception, traceback):
