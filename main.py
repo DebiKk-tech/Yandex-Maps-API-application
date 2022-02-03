@@ -1,7 +1,7 @@
 import sys
 
 from PyQt5 import uic  # Импортируем uic
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from Get_Map import *
@@ -12,22 +12,53 @@ MODES = {'Схема': 'map',
          'Гибрид': 'sat,skl'
          }
 
+SIZES = {
+    0: 0.002,
+    0.002: 0.005,
+    0.005: 0.01,
+    0.01: 0.015,
+    0.015: 0.025,
+    0.025: 0.045,
+    0.045: 0.09,
+    0.09: 0.175,
+    0.175: 0.35,
+    0.35: 0.7,
+    0.7: 1.395,
+    1.395: 2.79,
+    2.79: 6,
+    6: 12,
+    12: 24,
+    24: 48,
+    48: 70
+}
+
 
 class Ui_Form(QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi('MapProject.ui', self)
+        self.setChildrenFocusPolicy(Qt.NoFocus)
         self.coords = '37.620070,55.753630'
         self.spn = '0.01,0.01'
         self.mode = 'map'
         self.target = None
         self.fill_chg_mode()
+        self.adress = None
+        self.postal_code = ''
         get_map(self.mode, self.coords, spn=self.spn)
         self.set_image('map.png')
-
         self.chg_mode_btn.clicked.connect(self.chg_type)
-
         self.btn_search.clicked.connect(self.search)
+        self.chck_index.stateChanged.connect(self.update)
+        self.sbrs_btn.clicked.connect(self.sbros)
+
+    def setChildrenFocusPolicy(self, policy):
+        def recursiveSetChildFocusPolicy(parentQWidget):
+            for childQWidget in parentQWidget.findChildren(QWidget):
+                childQWidget.setFocusPolicy(policy)
+                recursiveSetChildFocusPolicy(childQWidget)
+        recursiveSetChildFocusPolicy(self)
+        self.fnd_line.setFocusPolicy(Qt.ClickFocus)
 
     def fill_chg_mode(self):
         for key in MODES.keys():
@@ -36,6 +67,14 @@ class Ui_Form(QMainWindow):
 
     def update(self):
         get_map(self.mode, self.coords, spn=self.spn, pt=self.target)
+        if self.adress:
+            if self.chck_index.isChecked():
+                print(self.adress, self.postal_code)
+                self.edit_output.setText(self.adress + self.postal_code)
+            else:
+                self.edit_output.setText(self.adress)
+        elif self.chck_index.isChecked() and self.edit_output.toPlainText() != '':
+            self.edit_output.setText(self.edit_output.toPlainText() + self.postal_code)
         self.set_image('map.png')
 
     def set_image(self, img_name):
@@ -44,21 +83,17 @@ class Ui_Form(QMainWindow):
         self.repaint()
 
     def keyPressEvent(self, event):
-        print('click')
         spn = [float(self.spn.split(',')[0]), float(self.spn.split(',')[1])]
         coords = [float(self.coords.split(',')[0]), float(self.coords.split(',')[1])]
         if event.key() == Qt.Key_PageUp:
-            spn[0] += 0.005
-            spn[1] += 0.005
-            if spn[0] > 90:
-                spn[1] = 90
-                spn[0] = 90
+            if spn[0] < 70:
+                spn[0] = SIZES[spn[0]]
+                spn[1] = SIZES[spn[1]]
         elif event.key() == Qt.Key_PageDown:
-            spn[0] -= 0.005
-            spn[1] -= 0.005
-            if spn[0] < 0:
-                spn[1] = 0
-                spn[0] = 0
+            if spn[0] > 0:
+                for key, value in SIZES.items():
+                    if value == spn[0]:
+                        spn[0], spn[1] = key, key
         if event.key() == Qt.Key_Right:
             coords[0] += spn[0]
         if event.key() == Qt.Key_Up:
@@ -67,11 +102,18 @@ class Ui_Form(QMainWindow):
             coords[0] -= spn[0]
         if event.key() == Qt.Key_Down:
             coords[1] -= spn[1]
+        if coords[0] - spn[0] < -180 and event.key() == Qt.Key_Left:
+            coords[0] = 180 - spn[0]
+        elif coords[0] + spn[0] > 180 and event.key() == Qt.Key_Right:
+            coords[0] = -180 + spn[0]
+        if coords[1] < -90 and event.key() == Qt.Key_Down:
+            coords[1] = 180 + coords[1]
+        elif coords[1] > 90 and event.key() == Qt.Key_Up:
+            coords[1] = -180 + coords[1]
         spn[0], spn[1] = str(spn[0]), str(spn[1])
         coords[0], coords[1] = str(coords[0]), str(coords[1])
         self.spn = ','.join(spn)
         self.coords = ','.join(coords)
-        print(self.coords)
         self.update()
 
     def chg_type(self):
@@ -85,12 +127,30 @@ class Ui_Form(QMainWindow):
             json_response = response.json()
             toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
             coords = toponym["Point"]["pos"].split()
+            adress = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
+            try:
+                postal_code = toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]['postal_code']
+                self.postal_code = ', ' + postal_code
+            except:
+                self.postal_code = ''
+
+            self.adress = adress
             self.coords = f'{coords[0]},{coords[1]}'
             self.target = self.coords
             self.update()
         else:
             print("Ошибка выполнения запроса:")
             print("Http статус:", response.status_code, "(", response.reason, ")")
+
+    def sbros(self):
+        self.target = None
+        self.edit_output.setText('')
+        self.adress = None
+        self.postal_code = ''
+        self.update()
+
+    def mousePressEvent(self, MouseEvent):
+        self.fnd_line.clearFocus()
 
 
 def except_hook(cls, exception, traceback):
