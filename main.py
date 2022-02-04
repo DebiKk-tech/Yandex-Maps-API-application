@@ -1,7 +1,7 @@
 import sys
 
 from PyQt5 import uic  # Импортируем uic
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QLabel
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from Get_Map import *
@@ -149,7 +149,7 @@ class Ui_Form(QMainWindow):
         self.postal_code = ''
         self.update()
 
-    def mousePressEvent(self, MouseEvent):
+    def mousePressEvent(self, mouseEvent):
         self.fnd_line.clearFocus()
 
 
