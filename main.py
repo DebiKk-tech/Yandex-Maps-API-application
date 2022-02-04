@@ -121,7 +121,7 @@ class Ui_Form(QMainWindow):
         print(self.mode)
         self.update()
 
-    def search(self):
+    def search(self, move=True):
         response = geocode(self.fnd_line.text())
         if response:
             json_response = response.json()
@@ -135,12 +135,14 @@ class Ui_Form(QMainWindow):
                 self.postal_code = ''
 
             self.adress = adress
-            self.coords = f'{coords[0]},{coords[1]}'
-            self.target = self.coords
+            if move:
+                self.coords = f'{coords[0]},{coords[1]}'
+                self.target = self.coords
             self.update()
         else:
             print("Ошибка выполнения запроса:")
             print("Http статус:", response.status_code, "(", response.reason, ")")
+            print(response.content)
 
     def sbros(self):
         self.target = None
@@ -165,9 +167,7 @@ class Ui_Form(QMainWindow):
         self.target = ','.join(map_coords)
         a = self.fnd_line.text()
         self.fnd_line.setText(self.target)
-        coords = self.coords
-        self.search()
-        self.coords = coords
+        self.search(False)
         self.fnd_line.setText(a)
         self.update()
 
