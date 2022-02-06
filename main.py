@@ -1,3 +1,4 @@
+
 import sys
 
 from PyQt5 import uic  # Импортируем uic
@@ -181,4 +182,3 @@ if __name__ == '__main__':
     ex = Ui_Form()
     ex.show()
     sys.excepthook = except_hook
-    sys.exit(app.exec_())
