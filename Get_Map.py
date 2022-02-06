@@ -1,5 +1,5 @@
+
 import requests
-import os
 
 
 def get_map(ln, ll, spn=None, z=None, size=None, scale=None, pt=None):
@@ -10,7 +10,6 @@ def get_map(ln, ll, spn=None, z=None, size=None, scale=None, pt=None):
             map_request += f'&{key}={arguments[key]}'
     response = requests.get(map_request)
     map_file = "map.png"
-    with open(map_file, "wb") as file:
-        file.write(response.content)
-    #взаимосвязь с интерфейсом
-    return map_file
+    if response.content:
+        with open(map_file, "wb") as file:
+            file.write(response.content)
